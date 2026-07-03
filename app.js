@@ -88,6 +88,7 @@ async function loadQuestion(questionId) {
 }
 
 function renderVotes() {
+  console.log("OPTIONS IM RENDER:", currentOptions);
   voteArea.innerHTML = "";
 
   currentOptions.forEach(option => {
@@ -108,31 +109,43 @@ function renderVotes() {
 }
 
 function drawWheel() {
-  ctx.clearRect(0,0,500,500);
+
+  ctx.clearRect(0, 0, 500, 500);
 
   const totalVotes = currentOptions.reduce(
-  (s,o)=>s+(o.votes ?? 0),0
-) || 1;
+    (s, o) => s + (o.votes ?? 0),
+    0
+  );
 
   let startAngle = angle;
 
-  currentOptions.forEach(option => {
-    const slice =
-  ((option.votes + 1) /
-  (totalVotes + currentOptions.length))
-  * Math.PI * 2;
+  currentOptions.forEach((option, index) => {
+
+    // 🔥 LETZTES SEGMENT FÜLLT REST AUF
+    let slice;
+
+    if (index === currentOptions.length - 1) {
+      slice = (Math.PI * 2) - (startAngle % (Math.PI * 2));
+    } else {
+      slice =
+        ((option.votes ?? 0) / Math.max(totalVotes, 1)) *
+        Math.PI * 2;
+    }
 
     ctx.beginPath();
-    ctx.moveTo(250,250);
-    ctx.arc(250,250,250,startAngle,startAngle+slice);
+    ctx.moveTo(250, 250);
+    ctx.arc(250, 250, 250, startAngle, startAngle + slice);
+    ctx.closePath();
+
     ctx.fillStyle = option.color;
     ctx.fill();
 
     ctx.save();
-    ctx.translate(250,250);
-    ctx.rotate(startAngle + slice/2);
+    ctx.translate(250, 250);
+    ctx.rotate(startAngle + slice / 2);
     ctx.fillStyle = "black";
-    ctx.fillText(option.text,120,10);
+    ctx.font = "16px Arial";
+    ctx.fillText(option.text, 120, 0);
     ctx.restore();
 
     startAngle += slice;
