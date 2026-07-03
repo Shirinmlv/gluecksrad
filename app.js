@@ -1,3 +1,4 @@
+let activeQuestionId = null;
 import { supabase } from './supabase.js';
 
 const questionInput = document.getElementById("questionInput");
@@ -59,6 +60,7 @@ createBtn.addEventListener("click", async () => {
 });
 
 async function loadQuestion(questionId) {
+  activeQuestionId = questionId;
   const { data: question } = await supabase
     .from("questions")
     .select("*")
@@ -101,12 +103,14 @@ function renderVotes() {
 function drawWheel() {
   ctx.clearRect(0,0,500,500);
 
-  const totalVotes = currentOptions.reduce((s,o)=>s+(o.votes||0),0);
+  const totalVotes = currentOptions.reduce(
+  (s,o)=>s+(o.votes ?? 0),0
+) || 1;
 
   let startAngle = angle;
 
   currentOptions.forEach(option => {
-    const slice = ((option.votes||1)/Math.max(totalVotes,1))*Math.PI*2;
+    const slice = ((option.votes ?? 1) / totalVotes) * Math.PI * 2;
 
     ctx.beginPath();
     ctx.moveTo(250,250);
@@ -162,15 +166,20 @@ function determineWinner(){
 }
 
 supabase
-  .channel("options-realtime")
   .on("postgres_changes", {
-    event: "*",
-    schema: "public",
-    table: "options"
-  }, async () => {
-    const { data } = await supabase.from("options").select("*");
-    currentOptions = data;
-    renderVotes();
-    drawWheel();
-  })
+  event: "*",
+  schema: "public",
+  table: "options"
+}, async () => {
+
+  const { data } = await supabase
+    .from("options")
+    .select("*")
+    .eq("question_id", activeQuestionId);
+
+  currentOptions = data || [];
+
+  renderVotes();
+  drawWheel();
+})
   .subscribe();
