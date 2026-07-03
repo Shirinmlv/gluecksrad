@@ -1,3 +1,4 @@
+console.log("APP LÄUFT");
 window.currentOptions = [];
 window.activeQuestionId = null;
 
