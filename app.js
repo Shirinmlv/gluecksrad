@@ -64,6 +64,9 @@ setTimeout(() => {
 
 async function loadQuestion(questionId) {
 
+  console.log("LOAD QUESTION", questionId);
+console.log("OPTIONS FROM DB", options);
+
   activeQuestionId = questionId;
 
   const { data: question } = await supabase
@@ -88,28 +91,44 @@ async function loadQuestion(questionId) {
 }
 
 function renderVotes() {
-  console.log("OPTIONS IM RENDER:", currentOptions);
+
+  console.log("RENDER VOTES CALLED");
+  console.log("CURRENT OPTIONS:", currentOptions);
+
   voteArea.innerHTML = "";
 
+  if (!currentOptions || currentOptions.length === 0) {
+    voteArea.innerHTML = "<p>Keine Optionen geladen</p>";
+    return;
+  }
+
   currentOptions.forEach(option => {
+
     const btn = document.createElement("button");
+
     btn.className = "voteBtn";
     btn.innerText = option.text;
     btn.style.background = option.color;
 
-    btn.onclick = async () => {
+    console.log("BUTTON CREATED:", option.text);
 
-  const newVotes = (option.votes ?? 0) + 1;
+    btn.addEventListener("click", async () => {
 
-  const { error } = await supabase
-    .from("options")
-    .update({ votes: newVotes })
-    .eq("id", option.id);
+      console.log("CLICK:", option.text);
 
-  if (error) {
-    console.error(error);
-  }
-};
+      const newVotes = (option.votes ?? 0) + 1;
+
+      const { error } = await supabase
+        .from("options")
+        .update({ votes: newVotes })
+        .eq("id", option.id);
+
+      if (error) console.error(error);
+    });
+
+    voteArea.appendChild(btn);
+  });
+}
 
     voteArea.appendChild(btn);
   });
