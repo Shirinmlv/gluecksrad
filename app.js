@@ -56,11 +56,16 @@ createBtn.addEventListener("click", async () => {
 
   await supabase.from("options").insert(options);
 
+// WICHTIG: kurz warten, damit DB sicher schreibt
+setTimeout(() => {
   loadQuestion(question.id);
+}, 300);
 });
 
 async function loadQuestion(questionId) {
+
   activeQuestionId = questionId;
+
   const { data: question } = await supabase
     .from("questions")
     .select("*")
@@ -74,7 +79,9 @@ async function loadQuestion(questionId) {
     .select("*")
     .eq("question_id", questionId);
 
-  currentOptions = options;
+  console.log("OPTIONS GELADEN:", options);
+
+  currentOptions = options || [];
 
   renderVotes();
   drawWheel();
@@ -166,20 +173,23 @@ function determineWinner(){
 }
 
 supabase
+  .channel("options-realtime")
   .on("postgres_changes", {
-  event: "*",
-  schema: "public",
-  table: "options"
-}, async () => {
+    event: "*",
+    schema: "public",
+    table: "options"
+  }, async () => {
 
-  const { data } = await supabase
-    .from("options")
-    .select("*")
-    .eq("question_id", activeQuestionId);
+    if (!activeQuestionId) return;
 
-  currentOptions = data || [];
+    const { data } = await supabase
+      .from("options")
+      .select("*")
+      .eq("question_id", activeQuestionId);
 
-  renderVotes();
-  drawWheel();
-})
+    currentOptions = data || [];
+
+    renderVotes();
+    drawWheel();
+  })
   .subscribe();
