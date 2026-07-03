@@ -117,7 +117,10 @@ function drawWheel() {
   let startAngle = angle;
 
   currentOptions.forEach(option => {
-    const slice = ((option.votes ?? 1) / totalVotes) * Math.PI * 2;
+    const slice =
+  ((option.votes + 1) /
+  (totalVotes + currentOptions.length))
+  * Math.PI * 2;
 
     ctx.beginPath();
     ctx.moveTo(250,250);
@@ -174,22 +177,26 @@ function determineWinner(){
 
 supabase
   .channel("options-realtime")
-  .on("postgres_changes", {
-    event: "*",
-    schema: "public",
-    table: "options"
-  }, async () => {
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "options"
+    },
+    async () => {
 
-    if (!activeQuestionId) return;
+      if (!activeQuestionId) return;
 
-    const { data } = await supabase
-      .from("options")
-      .select("*")
-      .eq("question_id", activeQuestionId);
+      const { data } = await supabase
+        .from("options")
+        .select("*")
+        .eq("question_id", activeQuestionId);
 
-    currentOptions = data || [];
+      currentOptions = data || [];
 
-    renderVotes();
-    drawWheel();
-  })
+      renderVotes();
+      drawWheel();
+    }
+  )
   .subscribe();
