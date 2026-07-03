@@ -1,0 +1,43 @@
+body {
+  font-family: Arial;
+  background: #111;
+  color: white;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+
+input {
+  padding: 10px;
+  margin: 5px;
+  width: 300px;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+#spinBtn { background: limegreen; }
+#stopBtn { background: crimson; color: white; }
+
+canvas {
+  margin-top: 30px;
+  background: white;
+  border-radius: 50%;
+}
+
+.voteBtn {
+  display: block;
+  margin: 10px auto;
+  width: 250px;
+}
