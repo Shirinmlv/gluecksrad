@@ -98,11 +98,18 @@ function renderVotes() {
     btn.style.background = option.color;
 
     btn.onclick = async () => {
-      await supabase
-        .from("options")
-        .update({ votes: option.votes + 1 })
-        .eq("id", option.id);
-    };
+
+  const newVotes = (option.votes ?? 0) + 1;
+
+  const { error } = await supabase
+    .from("options")
+    .update({ votes: newVotes })
+    .eq("id", option.id);
+
+  if (error) {
+    console.error(error);
+  }
+};
 
     voteArea.appendChild(btn);
   });
