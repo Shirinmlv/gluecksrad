@@ -1,4 +1,7 @@
-let activeQuestionId = null;
+window.currentOptions = [];
+window.activeQuestionId = null;
+
+let window.activeQuestionId = null;
 import { supabase } from './supabase.js';
 
 const questionInput = document.getElementById("questionInput");
@@ -17,7 +20,7 @@ const stopBtn = document.getElementById("stopBtn");
 
 const winnerText = document.getElementById("winner");
 
-let currentOptions = [];
+let window.currentOptions = [];
 let angle = 0;
 let spinning = false;
 let spinVelocity = 0;
@@ -67,7 +70,7 @@ async function loadQuestion(questionId) {
   console.log("LOAD QUESTION", questionId);
 console.log("OPTIONS FROM DB", options);
 
-  activeQuestionId = questionId;
+  window.activeQuestionId = questionId;
 
   const { data: question } = await supabase
     .from("questions")
@@ -84,7 +87,7 @@ console.log("OPTIONS FROM DB", options);
 
   console.log("OPTIONS GELADEN:", options);
 
-  currentOptions = options || [];
+  window.currentOptions = options || [];
 
   renderVotes();
   drawWheel();
@@ -93,16 +96,16 @@ console.log("OPTIONS FROM DB", options);
 function renderVotes() {
 
   console.log("RENDER VOTES CALLED");
-  console.log("CURRENT OPTIONS:", currentOptions);
+  console.log("CURRENT OPTIONS:", window.currentOptions);
 
   voteArea.innerHTML = "";
 
-  if (!currentOptions || currentOptions.length === 0) {
+  if (!window.currentOptions || window.currentOptions.length === 0) {
     voteArea.innerHTML = "<p>Keine Optionen geladen</p>";
     return;
   }
 
-  currentOptions.forEach(option => {
+  window.currentOptions.forEach(option => {
 
     const btn = document.createElement("button");
 
@@ -138,14 +141,14 @@ function drawWheel() {
 
   ctx.clearRect(0, 0, 500, 500);
 
-  const totalVotes = currentOptions.reduce(
+  const totalVotes = window.currentOptions.reduce(
     (s, o) => s + (o.votes ?? 0),
     0
   );
 
   let startAngle = angle;
 
-  currentOptions.forEach((option, index) => {
+  window.currentOptions.forEach((option, index) => {
 
     // 🔥 LETZTES SEGMENT FÜLLT REST AUF
     let slice;
@@ -225,14 +228,14 @@ supabase
     },
     async () => {
 
-      if (!activeQuestionId) return;
+     if (!window.activeQuestionId) return;
 
-      const { data } = await supabase
-        .from("options")
-        .select("*")
-        .eq("question_id", activeQuestionId);
+const { data } = await supabase
+  .from("options")
+  .select("*")
+  .eq("question_id", window.activeQuestionId);
 
-      currentOptions = data || [];
+window.currentOptions = data || [];
 
       renderVotes();
       drawWheel();
