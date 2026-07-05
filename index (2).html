@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glücksrad – Live Abstimmung</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0D1117;
+      --surface: #161B22;
+      --border:  #30363D;
+      --text:    #F0EDE8;
+      --muted:   #8B949E;
+      --accent:  #58A6FF;
+      --radius:  12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #da3633;
+      box-shadow: 0 0 6px #da3633;
+      flex-shrink: 0;
+    }
+    .status-dot.online { background: #2ea043; box-shadow: 0 0 6px #2ea043; }
+
+    main {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      height: calc(100vh - 57px);
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--border);
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .option-row input { flex: 1; }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.1s, background 0.1s;
+    }
+    .remove-btn:hover { color: #FF6B6B; background: rgba(255,107,107,0.1); }
+
+    .add-btn {
+      background: none;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn {
+      background: var(--accent);
+      color: #0D1117;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      width: 100%;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn.secondary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-row .btn { flex: 1; }
+
+    .vote-option {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .vote-option:hover { border-color: var(--accent); background: rgba(88,166,255,0.05); }
+    .vote-option.selected { border-color: var(--accent); background: rgba(88,166,255,0.1); }
+    .vote-label { flex: 1; font-size: 0.9rem; }
+    .vote-count { font-family: 'Space Grotesk', sans-serif; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+    .vote-bar-wrap { width: 100%; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .vote-bar { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+    .wheel-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 32px;
+      position: relative;
+    }
+
+    .wheel-question {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      max-width: 500px;
+      min-height: 1.5em;
+    }
+
+    .wheel-container {
+      position: relative;
+      width: min(420px, 60vw);
+      height: min(420px, 60vw);
+    }
+
+    .wheel-pointer {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 32px solid #F0EDE8;
+      z-index: 10;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+      display: none;
+    }
+
+    #wheelCanvas {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px var(--border), 0 0 40px rgba(88,166,255,0.15), 0 8px 32px rgba(0,0,0,0.6);
+      display: none;
+    }
+
+    .wheel-hub {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px; height: 40px;
+      background: var(--bg);
+      border: 3px solid var(--border);
+      border-radius: 50%;
+      z-index: 5;
+      display: none;
+    }
+
+    .empty-wheel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%; height: 100%;
+      border: 2px dashed var(--border);
+      border-radius: 50%;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .wheel-controls { display: flex; gap: 14px; }
+
+    .spin-btn {
+      background: linear-gradient(135deg, #58A6FF, #4ECDC4);
+      color: #0D1117;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 40px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(88,166,255,0.3);
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .spin-btn:hover { opacity: 0.9; }
+    .spin-btn:active { transform: scale(0.97); }
+    .spin-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+    .stop-btn {
+      background: linear-gradient(135deg, #FF6B6B, #E17055);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 40px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(255,107,107,0.3);
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .stop-btn:hover { opacity: 0.9; }
+    .stop-btn:active { transform: scale(0.97); }
+    .stop-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+    .winner-banner {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 28px;
+      text-align: center;
+      min-width: 240px;
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+    }
+    .winner-banner.show { opacity: 1; }
+    .winner-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; }
+    .winner-text { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; }
+
+    .config-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.5;
+      padding: 10px 12px;
+      background: rgba(88,166,255,0.06);
+      border: 1px solid rgba(88,166,255,0.15);
+      border-radius: 8px;
+    }
+    .config-note code { font-family: monospace; color: var(--accent); }
+
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+    .toast.error { border-color: #FF6B6B; }
+    .toast.success { border-color: #4ECDC4; }
+
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="status-dot" id="statusDot"></div>
+  <h1>Glücksrad &mdash; Live Abstimmung</h1>
+</header>
+
+<main>
+  <aside class="sidebar">
+
+    <div>
+      <div class="section-label">Supabase Verbindung</div>
+      <div class="card">
+        <input type="text" id="supabaseUrl" placeholder="https://xyz.supabase.co" />
+        <input type="text" id="supabaseKey" placeholder="anon public key" />
+        <button class="btn secondary" id="connectBtn">Verbinden</button>
+        <div class="config-note">
+          Supabase URL + <code>anon</code> Key eintragen, dann Verbinden klicken.<br>
+          Ohne Verbindung läuft die App nur lokal im Browser.
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Frage &amp; Antworten</div>
+      <div class="card">
+        <input type="text" id="questionInput" placeholder="Deine Frage eingeben…" />
+        <div id="optionsList"></div>
+        <button class="add-btn" id="addOptionBtn">+ Antwort hinzufügen</button>
+        <button class="btn" id="publishBtn">Frage veröffentlichen</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Abstimmung</div>
+      <div class="card">
+        <div id="voteOptions">
+          <div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:16px 0;">
+            Zuerst eine Frage veröffentlichen.
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:4px;">
+          <button class="btn" id="voteBtn" disabled>Abstimmen</button>
+          <button class="btn secondary" id="resetBtn" style="width:auto;padding:10px 14px;" title="Stimmen zurücksetzen">↺</button>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <section class="wheel-area">
+    <div class="wheel-question" id="wheelQuestion">Noch keine Frage veröffentlicht.</div>
+
+    <div class="wheel-container" id="wheelContainer">
+      <div class="empty-wheel" id="emptyWheel">Füge Antwortoptionen hinzu und veröffentliche eine Frage.</div>
+      <canvas id="wheelCanvas"></canvas>
+      <div class="wheel-pointer" id="wheelPointer"></div>
+      <div class="wheel-hub" id="wheelHub"></div>
+    </div>
+
+    <div class="wheel-controls">
+      <button class="spin-btn" id="spinBtn" disabled>SPIN</button>
+      <button class="stop-btn" id="stopBtn" disabled>STOP</button>
+    </div>
+
+    <div class="winner-banner" id="winnerBanner">
+      <div class="winner-label">Gewinnerin</div>
+      <div class="winner-text" id="winnerText"></div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── HARDCODED CREDENTIALS (optional) ──────────────────────
+  // Trage hier deine Daten ein, damit du sie nicht jedes Mal eingibst:
+  var HARDCODED_URL = '';
+  var HARDCODED_KEY = '';
+
+  // ── COLORS ────────────────────────────────────────────────
+  var COLORS = [
+    '#4ECDC4','#FF6B6B','#FFE66D','#A29BFE',
+    '#55EFC4','#FD79A8','#FDCB6E','#74B9FF',
+    '#E17055','#00B894'
+  ];
+
+  // ── STATE ─────────────────────────────────────────────────
+  var db         = null;   // supabase client (renamed to avoid conflict)
+  var realtimeCh = null;
+
+  var options         = [
+    { label: '', color: COLORS[0] },
+    { label: '', color: COLORS[1] }
+  ];
+  var votes           = {};
+  var selectedVote    = null;
+  var hasVoted        = false;
+  var currentQuestion = '';
+
+  var angle    = 0;
+  var velocity = 0;
+  var spinning = false;
+  var stopping = false;
+  var rafId    = null;
+
+  // ── DOM REFS ──────────────────────────────────────────────
+  var elUrl       = document.getElementById('supabaseUrl');
+  var elKey       = document.getElementById('supabaseKey');
+  var elConnect   = document.getElementById('connectBtn');
+  var elAddOpt    = document.getElementById('addOptionBtn');
+  var elPublish   = document.getElementById('publishBtn');
+  var elVoteBtn   = document.getElementById('voteBtn');
+  var elResetBtn  = document.getElementById('resetBtn');
+  var elSpinBtn   = document.getElementById('spinBtn');
+  var elStopBtn   = document.getElementById('stopBtn');
+  var elOptList   = document.getElementById('optionsList');
+  var elVoteOpts  = document.getElementById('voteOptions');
+  var elQuestion  = document.getElementById('wheelQuestion');
+  var elEmpty     = document.getElementById('emptyWheel');
+  var elCanvas    = document.getElementById('wheelCanvas');
+  var elPointer   = document.getElementById('wheelPointer');
+  var elHub       = document.getElementById('wheelHub');
+  var elBanner    = document.getElementById('winnerBanner');
+  var elWinner    = document.getElementById('winnerText');
+  var elStatus    = document.getElementById('statusDot');
+  var elToast     = document.getElementById('toast');
+
+  // ── SUPABASE ──────────────────────────────────────────────
+  elConnect.addEventListener('click', connectDB);
+
+  async function connectDB() {
+    var url = elUrl.value.trim() || HARDCODED_URL;
+    var key = elKey.value.trim() || HARDCODED_KEY;
+
+    if (!url || !key) {
+      showToast('Bitte URL und Key eintragen.', 'error');
+      return;
+    }
+
+    try {
+      // supabase is the global from the CDN script — createClient lives on it
+      db = window.supabase.createClient(url, key);
+
+      // Quick connectivity test
+      var res = await db.from('votes').select('id').limit(1);
+      if (res.error && res.error.code !== 'PGRST116') {
+        throw res.error;
+      }
+
+      elStatus.classList.add('online');
+      showToast('Supabase verbunden ✓', 'success');
+      subscribeRealtime();
+
+      if (currentQuestion) loadVotes();
+    } catch (err) {
+      db = null;
+      elStatus.classList.remove('online');
+      showToast('Verbindung fehlgeschlagen: ' + (err.message || err), 'error');
+    }
+  }
+
+  function subscribeRealtime() {
+    if (!db) return;
+    if (realtimeCh) db.removeChannel(realtimeCh);
+    realtimeCh = db
+      .channel('votes_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, function () {
+        loadVotes();
+      })
+      .subscribe();
+  }
+
+  async function loadVotes() {
+    if (!db || !currentQuestion) return;
+    var res = await db
+      .from('votes')
+      .select('option_label')
+      .eq('question', currentQuestion);
+    if (res.error) return;
+
+    votes = {};
+    options.forEach(function (o) { votes[o.label] = 0; });
+    res.data.forEach(function (row) {
+      if (votes[row.option_label] !== undefined) votes[row.option_label]++;
+    });
+
+    renderVoteOptions();
+    drawWheel();
+  }
+
+  // ── OPTIONS ───────────────────────────────────────────────
+  elAddOpt.addEventListener('click', function () {
+    if (options.length >= 10) { showToast('Maximal 10 Optionen.', 'error'); return; }
+    options.push({ label: '', color: COLORS[options.length % COLORS.length] });
+    renderOptionsList();
+  });
+
+  function renderOptionsList() {
+    elOptList.innerHTML = '';
+    options.forEach(function (opt, i) {
+      var row = document.createElement('div');
+      row.className = 'option-row';
+
+      var dot = document.createElement('div');
+      dot.className = 'color-dot';
+      dot.style.background = opt.color;
+
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.placeholder = 'Option ' + (i + 1);
+      inp.value = opt.label;
+      inp.addEventListener('input', (function (idx) {
+        return function () { options[idx].label = this.value; };
+      }(i)));
+
+      var btn = document.createElement('button');
+      btn.className = 'remove-btn';
+      btn.textContent = '×';
+      btn.title = 'Entfernen';
+      btn.addEventListener('click', (function (idx) {
+        return function () {
+          if (options.length <= 2) { showToast('Mindestens 2 Optionen nötig.', 'error'); return; }
+          options.splice(idx, 1);
+          renderOptionsList();
+        };
+      }(i)));
+
+      row.appendChild(dot);
+      row.appendChild(inp);
+      row.appendChild(btn);
+      elOptList.appendChild(row);
+    });
+  }
+
+  // ── PUBLISH ───────────────────────────────────────────────
+  elPublish.addEventListener('click', function () {
+    var q = elQuestion.textContent; // use wheel display? No — get from input
+    var qInput = document.getElementById('questionInput').value.trim();
+    if (!qInput) { showToast('Bitte eine Frage eingeben.', 'error'); return; }
+
+    var valid = options.filter(function (o) { return o.label.trim(); });
+    if (valid.length < 2) { showToast('Mindestens 2 ausgefüllte Antworten.', 'error'); return; }
+
+    options = valid;
+    currentQuestion = qInput;
+    votes = {};
+    options.forEach(function (o) { votes[o.label] = 0; });
+    hasVoted = false;
+    selectedVote = null;
+
+    elQuestion.textContent = currentQuestion;
+    elBanner.classList.remove('show');
+    elVoteBtn.textContent = 'Abstimmen';
+    elVoteBtn.disabled = false;
+    elSpinBtn.disabled = false;
+
+    renderOptionsList();
+    renderVoteOptions();
+    showWheel();
+    drawWheel();
+
+    if (db) { subscribeRealtime(); loadVotes(); }
+    showToast('Frage veröffentlicht!', 'success');
+  });
+
+  // ── VOTE ──────────────────────────────────────────────────
+  elVoteBtn.addEventListener('click', async function () {
+    if (!selectedVote) { showToast('Bitte eine Option auswählen.', 'error'); return; }
+    if (hasVoted) { showToast('Du hast bereits abgestimmt.', 'error'); return; }
+
+    if (db) {
+      var res = await db.from('votes').insert({
+        question: currentQuestion,
+        option_label: selectedVote
+      });
+      if (res.error) { showToast('Fehler: ' + res.error.message, 'error'); return; }
+    } else {
+      votes[selectedVote] = (votes[selectedVote] || 0) + 1;
+      renderVoteOptions();
+      drawWheel();
+    }
+
+    hasVoted = true;
+    elVoteBtn.textContent = 'Abgestimmt ✓';
+    elVoteBtn.disabled = true;
+    showToast('Stimme gezählt!', 'success');
+  });
+
+  elResetBtn.addEventListener('click', async function () {
+    if (db && currentQuestion) {
+      await db.from('votes').delete().eq('question', currentQuestion);
+    } else {
+      options.forEach(function (o) { votes[o.label] = 0; });
+      renderVoteOptions();
+      drawWheel();
+    }
+    hasVoted = false;
+    selectedVote = null;
+    elVoteBtn.textContent = 'Abstimmen';
+    elVoteBtn.disabled = !currentQuestion;
+    elBanner.classList.remove('show');
+    showToast('Stimmen zurückgesetzt.', 'success');
+  });
+
+  function selectVote(label) {
+    if (hasVoted) return;
+    selectedVote = label;
+    renderVoteOptions();
+  }
+
+  function renderVoteOptions() {
+    if (!currentQuestion) return;
+    var total = Object.values(votes).reduce(function (a, b) { return a + b; }, 0);
+    elVoteOpts.innerHTML = '';
+
+    options.forEach(function (opt) {
+      var count = votes[opt.label] || 0;
+      var pct   = total > 0 ? (count / total * 100) : 0;
+
+      var div = document.createElement('div');
+      div.className = 'vote-option' + (selectedVote === opt.label ? ' selected' : '');
+      div.addEventListener('click', function () { selectVote(opt.label); });
+
+      var dot = document.createElement('div');
+      dot.className = 'color-dot';
+      dot.style.background = opt.color;
+
+      var lbl = document.createElement('span');
+      lbl.className = 'vote-label';
+      lbl.textContent = opt.label;
+
+      var cnt = document.createElement('span');
+      cnt.className = 'vote-count';
+      cnt.textContent = count;
+
+      var barWrap = document.createElement('div');
+      barWrap.className = 'vote-bar-wrap';
+      var bar = document.createElement('div');
+      bar.className = 'vote-bar';
+      bar.style.width = pct + '%';
+      bar.style.background = opt.color;
+      barWrap.appendChild(bar);
+
+      div.appendChild(dot);
+      div.appendChild(lbl);
+      div.appendChild(cnt);
+      div.appendChild(barWrap);
+      elVoteOpts.appendChild(div);
+    });
+  }
+
+  // ── WHEEL ─────────────────────────────────────────────────
+  function showWheel() {
+    elEmpty.style.display   = 'none';
+    elCanvas.style.display  = 'block';
+    elPointer.style.display = 'block';
+    elHub.style.display     = 'block';
+  }
+
+  function drawWheel() {
+    if (elCanvas.style.display === 'none') return;
+    var size = elCanvas.offsetWidth * (window.devicePixelRatio || 1);
+    if (size === 0) size = 420;
+    elCanvas.width  = size;
+    elCanvas.height = size;
+
+    var ctx  = elCanvas.getContext('2d');
+    var cx   = size / 2;
+    var cy   = size / 2;
+    var r    = size / 2 - 2;
+
+    var total = Object.values(votes).reduce(function (a, b) { return a + b; }, 0);
+    var segments = options.map(function (opt) {
+      return {
+        label:    opt.label,
+        color:    opt.color,
+        fraction: total > 0 ? (votes[opt.label] || 0) / total : 1 / options.length
+      };
+    });
+
+    ctx.clearRect(0, 0, size, size);
+    var start = angle * Math.PI / 180;
+
+    segments.forEach(function (seg) {
+      var sweep = seg.fraction * 2 * Math.PI;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, start + sweep);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(13,17,23,0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      var mid = start + sweep / 2;
+      var tx  = cx + Math.cos(mid) * r * 0.62;
+      var ty  = cy + Math.sin(mid) * r * 0.62;
+
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(mid + Math.PI / 2);
+      ctx.fillStyle = '#0D1117';
+      var fs = Math.max(10, Math.min(16, size * 0.033));
+      ctx.font = 'bold ' + fs + 'px "Space Grotesk", sans-serif';
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      wrapText(ctx, seg.label, 0, 0, r * 0.5, fs * 1.2);
+      ctx.restore();
+
+      start += sweep;
+    });
+  }
+
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    var words = text.split(' ');
+    var line  = '';
+    var lines = [];
+    words.forEach(function (w) {
+      var test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+      else { line = test; }
+    });
+    lines.push(line);
+    var startY = y - (lines.length - 1) * lh / 2;
+    lines.forEach(function (l, i) { ctx.fillText(l, x, startY + i * lh); });
+  }
+
+  // ── SPIN / STOP ───────────────────────────────────────────
+  elSpinBtn.addEventListener('click', function () {
+    if (!currentQuestion || options.length < 2 || spinning) return;
+    elBanner.classList.remove('show');
+    stopping = false;
+    spinning = true;
+    velocity = 8 + Math.random() * 4;
+    elSpinBtn.disabled = true;
+    elStopBtn.disabled = false;
+    requestAnimationFrame(animate);
+  });
+
+  elStopBtn.addEventListener('click', function () {
+    if (!spinning || stopping) return;
+    stopping = true;
+    elStopBtn.disabled = true;
+  });
+
+  function animate() {
+    if (!spinning) return;
+    angle = (angle + velocity) % 360;
+    if (stopping) {
+      velocity *= 0.972;
+      if (velocity < 0.15) {
+        spinning = false;
+        stopping = false;
+        elStopBtn.disabled = true;
+        elSpinBtn.disabled = false;
+        showWinner();
+      }
+    }
+    drawWheel();
+    requestAnimationFrame(animate);
+  }
+
+  function showWinner() {
+    var total = Object.values(votes).reduce(function (a, b) { return a + b; }, 0);
+    var segments = options.map(function (opt) {
+      return {
+        label:    opt.label,
+        color:    opt.color,
+        fraction: total > 0 ? (votes[opt.label] || 0) / total : 1 / options.length
+      };
+    });
+
+    // Pointer is at top of circle = 270° absolute
+    // Offset by current rotation angle
+    var pointerNorm = ((270 - angle) % 360 + 360) % 360;
+    var pointerRad  = pointerNorm * Math.PI / 180;
+
+    var cumul  = 0;
+    var winner = segments[0];
+    for (var i = 0; i < segments.length; i++) {
+      cumul += segments[i].fraction * 2 * Math.PI;
+      if (pointerRad < cumul) { winner = segments[i]; break; }
+    }
+
+    elWinner.textContent  = winner.label;
+    elWinner.style.color  = winner.color;
+    elBanner.classList.add('show');
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────
+  var toastTimer = null;
+  function showToast(msg, type) {
+    elToast.textContent = msg;
+    elToast.className   = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { elToast.classList.remove('show'); }, 2800);
+  }
+
+  // ── INIT ──────────────────────────────────────────────────
+  window.addEventListener('resize', function () { if (currentQuestion) drawWheel(); });
+
+  if (HARDCODED_URL && HARDCODED_KEY) {
+    elUrl.value = HARDCODED_URL;
+    elKey.value = HARDCODED_KEY;
+    connectDB();
+  }
+
+  renderOptionsList();
+
+}());
+</script>
+</body>
+</html>
