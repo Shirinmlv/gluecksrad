@@ -635,7 +635,7 @@
   // ── ABSTIMMEN ─────────────────────────────────────────────
   elVoteBtn.addEventListener('click', async function() {
     if (!selectedVote) { showToast('Bitte eine Option wählen.', 'error'); return; }
-    if (hasVoted)      { showToast('Du hast bereits abgestimmt.', 'error'); return; }
+    
 
     if (db) {
       var res = await db.from('votes').insert({ question: currentQuestion, option_label: selectedVote });
@@ -645,9 +645,7 @@
       renderVoteOptions(); drawWheel();
     }
 
-    hasVoted = true;
-    elVoteBtn.textContent = 'Abgestimmt ✓';
-    elVoteBtn.disabled    = true;
+    
     showToast('Stimme gezählt!', 'success');
   });
 
