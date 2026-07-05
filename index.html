@@ -278,19 +278,6 @@
 <main>
   <aside class="sidebar">
 
-    <!-- Verbindung -->
-    <div>
-      <div class="section-label">Supabase Verbindung</div>
-      <div class="card">
-        <input type="text" id="supabaseUrl" placeholder="https://xyz.supabase.co" />
-        <input type="text" id="supabaseKey" placeholder="anon public key" />
-        <button class="btn secondary" id="connectBtn">Verbinden</button>
-        <div class="config-note">
-          URL + <code>anon</code> Key eintragen → Verbinden.<br>
-          Danach synchronisiert sich alles automatisch auf allen Geräten.
-        </div>
-      </div>
-    </div>
 
     <!-- Frage erstellen -->
     <div>
@@ -359,8 +346,8 @@
 
   // ── HARDCODED CREDENTIALS ─────────────────────────────────
   // Optional: hier eintragen damit du sie nicht jedes Mal eingibst
-  var HARDCODED_URL = '';
-  var HARDCODED_KEY = '';
+  var HARDCODED_URL = 'https://kuzogsqliihqpjucqqdt.supabase.co';
+  var HARDCODED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1em9nc3FsaWlocXBqdWNxcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTMxMjYsImV4cCI6MjA5ODY2OTEyNn0.UdgP451o2iB0nm-OMs1oOO8aUwTZSA51OMEHhzRgB8w';
 
   // ── FARBEN ────────────────────────────────────────────────
   var COLORS = [
