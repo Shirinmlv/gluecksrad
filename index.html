@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glücksrad – Live Abstimmung</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0D1117;
+      --surface:   #161B22;
+      --border:    #30363D;
+      --text:      #F0EDE8;
+      --muted:     #8B949E;
+      --accent:    #58A6FF;
+      --radius:    12px;
+      --seg-colors: #4ECDC4, #FF6B6B, #FFE66D, #A29BFE, #55EFC4, #FD79A8, #FDCB6E, #74B9FF, #E17055, #00B894;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #2ea043;
+      box-shadow: 0 0 6px #2ea043;
+      flex-shrink: 0;
+    }
+    .status-dot.offline { background: #da3633; box-shadow: 0 0 6px #da3633; }
+
+    /* ── LAYOUT ── */
+    main {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 0;
+      height: calc(100vh - 57px);
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      border-right: 1px solid var(--border);
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+    input[type="text"]::placeholder, textarea::placeholder {
+      color: var(--muted);
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .color-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .option-row input { flex: 1; }
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.1s, background 0.1s;
+    }
+    .remove-btn:hover { color: #FF6B6B; background: rgba(255,107,107,0.1); }
+
+    .add-btn {
+      background: none;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: border-color 0.15s, color 0.15s;
+      margin-top: 4px;
+    }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn {
+      background: var(--accent);
+      color: #0D1117;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      width: 100%;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn.secondary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    /* Vote options */
+    .vote-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .vote-option:hover { border-color: var(--accent); background: rgba(88,166,255,0.05); }
+    .vote-option.selected { border-color: var(--accent); background: rgba(88,166,255,0.1); }
+    .vote-label { flex: 1; font-size: 0.9rem; }
+    .vote-count {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      min-width: 28px;
+      text-align: right;
+    }
+
+    .vote-bar-wrap {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .vote-bar { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+    /* ── WHEEL AREA ── */
+    .wheel-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 32px;
+      position: relative;
+    }
+
+    .wheel-question {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      max-width: 500px;
+      color: var(--text);
+      min-height: 1.5em;
+    }
+
+    .wheel-container {
+      position: relative;
+      width: min(420px, 72vw);
+      height: min(420px, 72vw);
+    }
+
+    /* Pointer arrow */
+    .wheel-pointer {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 32px solid #F0EDE8;
+      z-index: 10;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+    }
+
+    #wheelCanvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 4px var(--border),
+        0 0 40px rgba(88,166,255,0.15),
+        0 8px 32px rgba(0,0,0,0.6);
+    }
+
+    /* Center hub */
+    .wheel-hub {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px; height: 40px;
+      background: var(--bg);
+      border: 3px solid var(--border);
+      border-radius: 50%;
+      z-index: 5;
+    }
+
+    /* Controls */
+    .wheel-controls {
+      display: flex;
+      gap: 14px;
+    }
+
+    .spin-btn {
+      background: linear-gradient(135deg, #58A6FF, #4ECDC4);
+      color: #0D1117;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 40px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(88,166,255,0.3);
+    }
+    .spin-btn:hover { opacity: 0.9; box-shadow: 0 6px 28px rgba(88,166,255,0.45); }
+    .spin-btn:active { transform: scale(0.97); }
+    .spin-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+    .stop-btn {
+      background: linear-gradient(135deg, #FF6B6B, #E17055);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 40px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      box-shadow: 0 4px 20px rgba(255,107,107,0.3);
+    }
+    .stop-btn:hover { opacity: 0.9; }
+    .stop-btn:active { transform: scale(0.97); }
+    .stop-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+    /* Winner banner */
+    .winner-banner {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 28px;
+      text-align: center;
+      min-width: 240px;
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+    }
+    .winner-banner.show { opacity: 1; pointer-events: auto; }
+    .winner-banner .winner-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .winner-banner .winner-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    /* empty state */
+    .empty-wheel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: min(420px, 72vw);
+      height: min(420px, 72vw);
+      border: 2px dashed var(--border);
+      border-radius: 50%;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 40px;
+    }
+
+    /* toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+    .toast.error { border-color: #FF6B6B; }
+    .toast.success { border-color: #4ECDC4; }
+
+    /* supabase config */
+    .config-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.5;
+      padding: 10px 12px;
+      background: rgba(88,166,255,0.06);
+      border: 1px solid rgba(88,166,255,0.15);
+      border-radius: 8px;
+    }
+    .config-note code {
+      font-family: 'Space Grotesk', monospace;
+      color: var(--accent);
+      font-size: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="status-dot" id="statusDot"></div>
+  <h1>Glücksrad &mdash; Live Abstimmung</h1>
+</header>
+
+<main>
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+
+    <!-- Supabase Config -->
+    <div>
+      <div class="section-label">Supabase Verbindung</div>
+      <div class="card" style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="supabaseUrl" placeholder="https://xyz.supabase.co" />
+        <input type="text" id="supabaseKey" placeholder="anon public key" />
+        <button class="btn secondary" onclick="connectSupabase()">Verbinden</button>
+        <div class="config-note">
+          Trage deine Supabase-URL und den <code>anon</code>-Key ein.<br>
+          Einmalig nötig – danach wird alles live synchronisiert.
+        </div>
+      </div>
+    </div>
+
+    <!-- Frage & Optionen -->
+    <div>
+      <div class="section-label">Frage & Antworten</div>
+      <div class="card" style="display:flex; flex-direction:column; gap:10px;">
+        <input type="text" id="questionInput" placeholder="Deine Frage eingeben…" />
+        <div id="optionsList"></div>
+        <button class="add-btn" onclick="addOption()">+ Antwort hinzufügen</button>
+        <button class="btn" onclick="publishQuestion()">Frage veröffentlichen</button>
+      </div>
+    </div>
+
+    <!-- Abstimmung -->
+    <div>
+      <div class="section-label">Abstimmung</div>
+      <div class="card">
+        <div id="voteOptions">
+          <div style="color:var(--muted); font-size:0.85rem; text-align:center; padding: 16px 0;">
+            Zuerst eine Frage veröffentlichen.
+          </div>
+        </div>
+        <div style="margin-top: 12px; display:flex; gap:8px;">
+          <button class="btn" id="voteBtn" onclick="submitVote()" disabled>Abstimmen</button>
+          <button class="btn secondary" onclick="resetVotes()" title="Stimmen zurücksetzen">↺</button>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── WHEEL AREA ── -->
+  <section class="wheel-area">
+    <div class="wheel-question" id="wheelQuestion">Noch keine Frage veröffentlicht.</div>
+
+    <div class="wheel-container" id="wheelContainer">
+      <div class="empty-wheel" id="emptyWheel">
+        Füge Antwortoptionen hinzu und veröffentliche eine Frage.
+      </div>
+      <canvas id="wheelCanvas" style="display:none;"></canvas>
+      <div class="wheel-pointer" id="wheelPointer" style="display:none;"></div>
+      <div class="wheel-hub" id="wheelHub" style="display:none;"></div>
+    </div>
+
+    <div class="wheel-controls">
+      <button class="spin-btn" id="spinBtn" onclick="spinWheel()" disabled>SPIN</button>
+      <button class="stop-btn" id="stopBtn" onclick="stopWheel()" disabled>STOP</button>
+    </div>
+
+    <div class="winner-banner" id="winnerBanner">
+      <div class="winner-label">Gewinnerin</div>
+      <div class="winner-text" id="winnerText"></div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+// Falls du die Werte fest verdrahten willst, trage sie hier ein:
+const HARDCODED_URL = '';
+const HARDCODED_KEY = '';
+
+const SEG_COLORS = [
+  '#4ECDC4','#FF6B6B','#FFE66D','#A29BFE',
+  '#55EFC4','#FD79A8','#FDCB6E','#74B9FF',
+  '#E17055','#00B894'
+];
+
+// ── STATE ───────────────────────────────────────────────────
+let supabase = null;
+let channel  = null;
+
+let options = [
+  { label: '', color: SEG_COLORS[0] },
+  { label: '', color: SEG_COLORS[1] }
+];
+let votes = {};           // { optionLabel: count }
+let selectedVote = null;
+let hasVoted = false;
+let currentQuestion = '';
+
+// Wheel animation
+let angle        = 0;
+let velocity     = 0;
+let spinning     = false;
+let stopping     = false;
+let animFrameId  = null;
+
+// ── SUPABASE ────────────────────────────────────────────────
+async function connectSupabase() {
+  const url = document.getElementById('supabaseUrl').value.trim() || HARDCODED_URL;
+  const key = document.getElementById('supabaseKey').value.trim() || HARDCODED_KEY;
+  if (!url || !key) { showToast('Bitte URL und Key eintragen.', 'error'); return; }
+
+  try {
+    supabase = window.supabase.createClient(url, key);
+    // Test connection
+    const { error } = await supabase.from('votes').select('count', { count:'exact', head:true });
+    if (error && error.code !== 'PGRST116') throw error;
+
+    document.getElementById('statusDot').classList.remove('offline');
+    showToast('Supabase verbunden ✓', 'success');
+    subscribeToVotes();
+  } catch(e) {
+    document.getElementById('statusDot').classList.add('offline');
+    showToast('Verbindung fehlgeschlagen: ' + e.message, 'error');
+    supabase = null;
+  }
+}
+
+function subscribeToVotes() {
+  if (!supabase) return;
+  if (channel) supabase.removeChannel(channel);
+  channel = supabase
+    .channel('votes_changes')
+    .on('postgres_changes', { event:'*', schema:'public', table:'votes' }, () => {
+      loadVotes();
+    })
+    .subscribe();
+}
+
+async function loadVotes() {
+  if (!supabase || !currentQuestion) return;
+  const { data, error } = await supabase
+    .from('votes')
+    .select('option_label')
+    .eq('question', currentQuestion);
+  if (error) return;
+
+  votes = {};
+  options.forEach(o => { votes[o.label] = 0; });
+  data.forEach(row => {
+    if (votes[row.option_label] !== undefined) votes[row.option_label]++;
+  });
+
+  renderVoteOptions();
+  drawWheel();
+}
+
+async function submitVote() {
+  if (!selectedVote) { showToast('Bitte eine Option auswählen.', 'error'); return; }
+  if (hasVoted)      { showToast('Du hast bereits abgestimmt.', 'error'); return; }
+
+  if (supabase) {
+    const { error } = await supabase.from('votes').insert({
+      question: currentQuestion,
+      option_label: selectedVote
+    });
+    if (error) { showToast('Fehler beim Speichern: ' + error.message, 'error'); return; }
+  } else {
+    // Local fallback
+    votes[selectedVote] = (votes[selectedVote] || 0) + 1;
+    renderVoteOptions();
+    drawWheel();
+  }
+
+  hasVoted = true;
+  document.getElementById('voteBtn').textContent = 'Abgestimmt ✓';
+  document.getElementById('voteBtn').disabled = true;
+  showToast('Stimme gezählt!', 'success');
+}
+
+async function resetVotes() {
+  if (supabase && currentQuestion) {
+    await supabase.from('votes').delete().eq('question', currentQuestion);
+  } else {
+    options.forEach(o => { votes[o.label] = 0; });
+  }
+  hasVoted = false;
+  selectedVote = null;
+  document.getElementById('voteBtn').textContent = 'Abstimmen';
+  document.getElementById('voteBtn').disabled = false;
+  renderVoteOptions();
+  drawWheel();
+  document.getElementById('winnerBanner').classList.remove('show');
+  showToast('Stimmen zurückgesetzt.', 'success');
+}
+
+// ── OPTIONS UI ───────────────────────────────────────────────
+function renderOptionsList() {
+  const list = document.getElementById('optionsList');
+  list.innerHTML = '';
+  options.forEach((opt, i) => {
+    const row = document.createElement('div');
+    row.className = 'option-row';
+    row.innerHTML = `
+      <div class="color-dot" style="background:${opt.color};"></div>
+      <input type="text" placeholder="Option ${i+1}" value="${opt.label}"
+        oninput="options[${i}].label=this.value" />
+      <button class="remove-btn" onclick="removeOption(${i})" title="Entfernen">×</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addOption() {
+  if (options.length >= 10) { showToast('Maximal 10 Optionen.', 'error'); return; }
+  options.push({ label: '', color: SEG_COLORS[options.length % SEG_COLORS.length] });
+  renderOptionsList();
+}
+
+function removeOption(i) {
+  if (options.length <= 2) { showToast('Mindestens 2 Optionen nötig.', 'error'); return; }
+  options.splice(i, 1);
+  renderOptionsList();
+}
+
+// ── PUBLISH ──────────────────────────────────────────────────
+function publishQuestion() {
+  const q = document.getElementById('questionInput').value.trim();
+  if (!q) { showToast('Bitte eine Frage eingeben.', 'error'); return; }
+  const valid = options.filter(o => o.label.trim());
+  if (valid.length < 2) { showToast('Mindestens 2 Antwortmöglichkeiten.', 'error'); return; }
+
+  options = valid;
+  currentQuestion = q;
+  votes = {};
+  options.forEach(o => { votes[o.label] = 0; });
+  hasVoted = false;
+  selectedVote = null;
+
+  document.getElementById('wheelQuestion').textContent = q;
+  document.getElementById('winnerBanner').classList.remove('show');
+
+  renderVoteOptions();
+  renderOptionsList();
+  showWheel();
+  drawWheel();
+
+  document.getElementById('spinBtn').disabled = false;
+  document.getElementById('voteBtn').disabled = false;
+  document.getElementById('voteBtn').textContent = 'Abstimmen';
+
+  if (supabase) {
+    subscribeToVotes();
+    loadVotes();
+  }
+
+  showToast('Frage veröffentlicht!', 'success');
+}
+
+// ── VOTE OPTIONS ─────────────────────────────────────────────
+function renderVoteOptions() {
+  const container = document.getElementById('voteOptions');
+  if (!currentQuestion) return;
+  const total = Object.values(votes).reduce((a,b)=>a+b, 0);
+  container.innerHTML = '';
+
+  options.forEach(opt => {
+    const count = votes[opt.label] || 0;
+    const pct   = total > 0 ? (count / total * 100) : 0;
+    const div = document.createElement('div');
+    div.className = 'vote-option' + (selectedVote === opt.label ? ' selected' : '');
+    div.onclick = () => selectVote(opt.label);
+    div.innerHTML = `
+      <div class="color-dot" style="background:${opt.color};"></div>
+      <span class="vote-label">${opt.label}</span>
+      <span class="vote-count">${count}</span>
+      <div class="vote-bar-wrap" style="width:100%; grid-column:1/-1; margin-top:0;">
+        <div class="vote-bar" style="width:${pct}%; background:${opt.color};"></div>
+      </div>
+    `;
+    // Fix bar layout
+    div.style.flexWrap = 'wrap';
+    div.querySelector('.vote-bar-wrap').style.width = '100%';
+    div.querySelector('.vote-bar-wrap').style.marginTop = '6px';
+    container.appendChild(div);
+  });
+}
+
+function selectVote(label) {
+  if (hasVoted) return;
+  selectedVote = label;
+  renderVoteOptions();
+}
+
+// ── WHEEL ────────────────────────────────────────────────────
+function showWheel() {
+  document.getElementById('emptyWheel').style.display = 'none';
+  document.getElementById('wheelCanvas').style.display = 'block';
+  document.getElementById('wheelPointer').style.display = 'block';
+  document.getElementById('wheelHub').style.display = 'block';
+}
+
+function drawWheel() {
+  const canvas = document.getElementById('wheelCanvas');
+  if (!canvas) return;
+  const size = canvas.offsetWidth * (window.devicePixelRatio || 1);
+  canvas.width  = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const cx  = size / 2;
+  const cy  = size / 2;
+  const r   = size / 2 - 2;
+
+  const total = Object.values(votes).reduce((a,b)=>a+b, 0);
+  const segments = options.map(opt => ({
+    label: opt.label,
+    color: opt.color,
+    fraction: total > 0 ? (votes[opt.label] || 0) / total : 1 / options.length
+  }));
+
+  ctx.clearRect(0, 0, size, size);
+
+  let startAngle = angle * Math.PI / 180;
+  segments.forEach(seg => {
+    const sweep = seg.fraction * 2 * Math.PI;
+    // Slice
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, startAngle + sweep);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(13,17,23,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    const mid = startAngle + sweep / 2;
+    const tx  = cx + Math.cos(mid) * r * 0.62;
+    const ty  = cy + Math.sin(mid) * r * 0.62;
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.rotate(mid + Math.PI / 2);
+    ctx.fillStyle = '#0D1117';
+    ctx.font = `bold ${Math.max(10, Math.min(16, size * 0.033))}px "Space Grotesk", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const maxW = r * 0.5;
+    wrapText(ctx, seg.label, 0, 0, maxW, 18 * (size/420));
+    ctx.restore();
+
+    startAngle += sweep;
+  });
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  const lines = [];
+  words.forEach(word => {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else { line = test; }
+  });
+  lines.push(line);
+  const startY = y - (lines.length - 1) * lineHeight / 2;
+  lines.forEach((l, i) => ctx.fillText(l, x, startY + i * lineHeight));
+}
+
+// ── SPIN / STOP ──────────────────────────────────────────────
+function spinWheel() {
+  if (!currentQuestion || options.length < 2) return;
+  if (spinning) return;
+
+  document.getElementById('winnerBanner').classList.remove('show');
+  stopping  = false;
+  spinning  = true;
+  velocity  = 8 + Math.random() * 4;   // degrees/frame
+
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+
+  function animate() {
+    if (!spinning) return;
+    angle = (angle + velocity) % 360;
+    if (stopping) {
+      velocity *= 0.972;
+      if (velocity < 0.15) {
+        spinning  = false;
+        stopping  = false;
+        document.getElementById('stopBtn').disabled = true;
+        document.getElementById('spinBtn').disabled = false;
+        showWinner();
+      }
+    }
+    drawWheel();
+    animFrameId = requestAnimationFrame(animate);
+  }
+  animFrameId = requestAnimationFrame(animate);
+}
+
+function stopWheel() {
+  if (!spinning || stopping) return;
+  stopping = true;
+  document.getElementById('stopBtn').disabled = true;
+}
+
+function showWinner() {
+  // Pointer is at top = 270° in canvas coords (or -90°).
+  // We need to find which segment is at the top pointer.
+  const total = Object.values(votes).reduce((a,b)=>a+b, 0);
+  const segments = options.map(opt => ({
+    label: opt.label,
+    color: opt.color,
+    fraction: total > 0 ? (votes[opt.label]||0)/total : 1/options.length
+  }));
+
+  // Pointer points to top = angle 270° absolute = -90°
+  // Canvas starts drawing from 'angle' (current rotation offset)
+  const pointerDeg = 270; // top of circle
+  const normalizedPointer = ((pointerDeg - angle) % 360 + 360) % 360;
+  const pointerRad = normalizedPointer * Math.PI / 180;
+
+  let cumulative = 0;
+  let winner = segments[0];
+  for (const seg of segments) {
+    cumulative += seg.fraction * 2 * Math.PI;
+    if (pointerRad < cumulative) { winner = seg; break; }
+  }
+
+  const banner = document.getElementById('winnerBanner');
+  const text   = document.getElementById('winnerText');
+  text.textContent = winner.label;
+  text.style.color = winner.color;
+  banner.classList.add('show');
+}
+
+// ── TOAST ────────────────────────────────────────────────────
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+window.addEventListener('resize', () => { if (currentQuestion) drawWheel(); });
+
+if (HARDCODED_URL && HARDCODED_KEY) {
+  document.getElementById('supabaseUrl').value = HARDCODED_URL;
+  document.getElementById('supabaseKey').value = HARDCODED_KEY;
+  connectSupabase();
+}
+
+document.getElementById('statusDot').classList.add('offline');
+renderOptionsList();
+</script>
+</body>
+</html>
