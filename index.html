@@ -364,7 +364,7 @@
 
   var options         = [{ label:'', color:COLORS[0] }, { label:'', color:COLORS[1] }];
   var votes           = {};
-  var selectedVote    = null;
+  var selectedVotes   = [];
   var hasVoted        = false;
   var currentQuestion = '';
   var currentQId      = null;   // Supabase row id der aktiven Frage
@@ -634,20 +634,24 @@
 
   // ── ABSTIMMEN ─────────────────────────────────────────────
   elVoteBtn.addEventListener('click', async function() {
-    if (!selectedVote) { showToast('Bitte eine Option wählen.', 'error'); return; }
-    if (hasVoted)      { showToast('Du hast bereits abgestimmt.', 'error'); return; }
+    if (selectedVotes.length === 0) { showToast('Bitte mindestens eine Option wählen.', 'error'); return; }
 
     if (db) {
-      var res = await db.from('votes').insert({ question: currentQuestion, option_label: selectedVote });
+      var rows = selectedVotes.map(function(label) {
+        return { question: currentQuestion, option_label: label };
+      });
+      var res = await db.from('votes').insert(rows);
       if (res.error) { showToast('Fehler: ' + res.error.message, 'error'); return; }
     } else {
-      votes[selectedVote] = (votes[selectedVote] || 0) + 1;
+      selectedVotes.forEach(function(label) {
+        votes[label] = (votes[label] || 0) + 1;
+      });
       renderVoteOptions(); drawWheel();
     }
 
-   selectedVote = null;
+   selectedVotes = [];
     renderVoteOptions();
-    showToast('Stimme gezählt! Du kannst erneut abstimmen.', 'success');
+    showToast('Stimmen gezählt! Du kannst erneut abstimmen.', 'success');
   });
 
   elResetBtn.addEventListener('click', async function() {
@@ -665,8 +669,12 @@
   });
 
   function selectVote(label) {
-    if (hasVoted) return;
-    selectedVote = label;
+    var idx = selectedVotes.indexOf(label);
+    if (idx === -1) {
+      selectedVotes.push(label);
+    } else {
+      selectedVotes.splice(idx, 1);
+    }
     renderVoteOptions();
   }
 
@@ -679,7 +687,7 @@
       var pct   = total > 0 ? (count / total * 100) : 0;
 
       var div = document.createElement('div');
-      div.className = 'vote-option' + (selectedVote === opt.label ? ' selected' : '');
+      div.className = 'vote-option' + (selectedVotes.indexOf(opt.label) !== -1 ? ' selected' : '');
       div.addEventListener('click', function(){ selectVote(opt.label); });
 
       div.innerHTML =
