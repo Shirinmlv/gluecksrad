@@ -462,7 +462,7 @@
     votes = {};
     options.forEach(function(o){ votes[o.label] = 0; });
     hasVoted     = false;
-    selectedVote = null;
+    selectedVotes = [];
 
     elWheelQ.textContent      = currentQuestion;
     $('questionInput').value  = currentQuestion;
@@ -545,7 +545,7 @@
     votes = {};
     options.forEach(function(o){ votes[o.label] = 0; });
     hasVoted     = false;
-    selectedVote = null;
+    selectedVotes = [];
 
     elWheelQ.textContent   = q;
     elBanner.classList.remove('show');
@@ -576,7 +576,7 @@
     options         = [{ label:'', color:COLORS[0] }, { label:'', color:COLORS[1] }];
     votes           = {};
     hasVoted        = false;
-    selectedVote    = null;
+    selectedVotes = [];
 
     $('questionInput').value   = '';
     elWheelQ.textContent       = 'Noch keine Frage veröffentlicht.';
@@ -661,7 +661,7 @@
       options.forEach(function(o){ votes[o.label] = 0; });
       renderVoteOptions(); drawWheel();
     }
-    hasVoted = false; selectedVote = null;
+    hasVoted = false; selectedVotes = [];
     elVoteBtn.textContent = 'Abstimmen';
     elVoteBtn.disabled = !currentQuestion;
     elBanner.classList.remove('show');
